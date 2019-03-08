@@ -11,17 +11,6 @@ API_VERIFY_ENDPOINT = '/verify'
 SUBSCRIPTION_KEY = os.environ['MSKEY']
 ID_KEY = 'faceId'
 
-parser = argparse.ArgumentParser()
-parser.add_argument("images", help="two images verify", nargs=2)
-parser.add_argument('-v', '--verbose', help="verbose logging'", action="store_true")
-args = parser.parse_args()
-
-if args.verbose:
-    logging.basicConfig(level=logging.DEBUG)
-
-logging.getLogger().addHandler(logging.StreamHandler())
-
-
 def call_api(endpoint, params, data, headers):
     logging.debug('Calling API')
     conn = http.client.HTTPSConnection(API_BASE)
@@ -75,18 +64,31 @@ def verify_face(faceId1, faceId2):
 def getId(face):
     return face[0][ID_KEY]
 
+def run_verify():
+    img1 = args.images[0]
+    img2 = args.images[1]
 
-img1 = args.images[0]
-img2 = args.images[1]
+    face1 = detect_face(img1)
+    logging.debug(face1)
 
-face1 = detect_face(img1)
-logging.debug(face1)
+    face2 = detect_face(img2)
+    logging.debug(face2)
 
-face2 = detect_face(img2)
-logging.debug(face2)
+    try:
+        verified = verify_face(getId(face1), getId(face2))
+        print(verified)
+    except Exception as e:
+        logging.error(e)
 
-try:
-    verified = verify_face(getId(face1), getId(face2))
-    print(verified)
-except Exception as e:
-    logging.error(e)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("images", help="two images verify", nargs=2)
+    parser.add_argument('-v', '--verbose', help="verbose logging'", action="store_true")
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG)
+
+    logging.getLogger().addHandler(logging.StreamHandler())
+
+    run_verify()
