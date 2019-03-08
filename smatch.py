@@ -1,7 +1,8 @@
 import http.client, urllib.request, urllib.parse, urllib.error, base64
-import sys
 import json
 import os
+import argparse
+import logging
 
 API_BASE = 'eastus.api.cognitive.microsoft.com'
 API_VERSION = '/face/v1.0'
@@ -10,14 +11,26 @@ API_VERIFY_ENDPOINT = '/verify'
 SUBSCRIPTION_KEY = os.environ['MSKEY']
 ID_KEY = 'faceId'
 
+parser = argparse.ArgumentParser()
+parser.add_argument("images", help="two images verify", nargs=2)
+parser.add_argument('-v', '--verbose', help="verbose logging'", action="store_true")
+args = parser.parse_args()
+
+if args.verbose:
+    logging.basicConfig(level=logging.DEBUG)
+
+logging.getLogger().addHandler(logging.StreamHandler())
+
+
 def call_api(endpoint, params, data, headers):
+    logging.debug('Calling API')
     conn = http.client.HTTPSConnection(API_BASE)
     url = "{}{}?{}".format(API_VERSION, endpoint, params)
-    print('URL: {}'.format(url))
+    logging.debug('URL: {}'.format(url))
     conn.request("POST", url, data, headers)
     response = conn.getresponse()
     data = response.read().decode('utf-8')
-    print('Response: {}'.format(data))
+    logging.debug('Response: {}'.format(data))
     conn.close()
     json_obj = json.loads(data)
     return json_obj
@@ -36,7 +49,7 @@ def detect_face(img_path):
         # 'returnFaceAttributes': '{string}',
     })
     json_obj = call_api(API_DETECT_ENDPOINT, params, open(img_path, 'rb'), headers)
-    print(json_obj)
+    logging.debug(json_obj)
     return json_obj
 
 def verify_face(faceId1, faceId2):
@@ -56,23 +69,24 @@ def verify_face(faceId1, faceId2):
         }), 
         headers
     )
-    print(json_obj)
+    logging.debug(json_obj)
     return json_obj
 
 def getId(face):
     return face[0][ID_KEY]
 
 
-img1 = sys.argv[1]
-img2 = sys.argv[2]
+img1 = args.images[0]
+img2 = args.images[1]
 
 face1 = detect_face(img1)
-print(face1)
+logging.debug(face1)
 
 face2 = detect_face(img2)
-print(face2)
+logging.debug(face2)
 
 try:
     verified = verify_face(getId(face1), getId(face2))
+    print(verified)
 except Exception as e:
-    print(e)
+    logging.error(e)
